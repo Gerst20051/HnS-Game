@@ -9,7 +9,7 @@ $userid = $_SESSION['user_id'];
 
 if (isset($_GET['action'])) $action = trim($_GET['action']);
 if (isset($_GET['data'])) $data = trim($_GET['data']);
-$newdata = "$username|$data,";
+$newdata = "$username|$data";
 $newplayerslist = "";
 
 switch ($id) {
@@ -20,19 +20,17 @@ case 'update':
 
 $file = "game/playerlist.txt";
 
-if ($fhandle = @fopen($file, 'r')) {
+if ($fhandle = fopen($file, 'r')) {
 	if (flock($fhandle, LOCK_EX)) {
 		$playerslist = trim(fread($fhandle, filesize($file)));
 		fclose($fhandle);
 	}
 }
 
-if ($fhandle = @fopen($file, 'w')) {
+if ($fhandle = fopen($file, 'w')) {
 	if (flock($fhandle, LOCK_EX)) {
-		if ($playerslist == "") {
-			$newplayerslist = $newdata;
-		} else {
-			if (substr_count($playerslist, ",") > 1) {
+		if ($playerslist != "") {
+			if (strpos($playerslist, ",") === true) {
 				$playerlist = explode(",", $playerslist); $exists = false; $playerinfo = "";
 				foreach ($playerlist as $players) {
 					$player = explode("|", $players);
@@ -40,13 +38,17 @@ if ($fhandle = @fopen($file, 'w')) {
 						$exists = true; $playerinfo = $players;
 					}
 				}
-				if ($exists === true) $newplayerslist = str_replace($playerinfo, $newdata, $playerslist);
-				else $newplayerslist = $playerslist . $newdata;
+				if ($exists === true) {
+					while (strpos($newplayerslist, $playerinfo) !== false) {$playerslist = str_replace($playerinfo, $newdata, $playerslist);}
+					$newplayerslist = $playerslist;
+				} else $newplayerslist = $playerslist . "," . $newdata;
 			} else {
 				$player = explode("|", $playerslist);
 				if (in_array($username, $player)) $newplayerslist = $newdata;
-				else $newplayerslist = $playerslist . $newdata;
+				else $newplayerslist = $playerslist . "," . $newdata;
 			}
+		} else {
+			$newplayerslist = $newdata;
 		}
 		if (is_writeable($file)) fwrite($fhandle, $newplayerslist);
 		echo $newplayerslist;
