@@ -47,11 +47,9 @@ width: 400px;
 }
 
 canvas#canvas {
-height: 300px;
 left: 0;
 position: absolute;
 top: 0;
-width: 400px;
 }
 
 div#overlay {
@@ -64,9 +62,7 @@ width: 400px;
 }
 
 canvas#map, canvas#underMap {
-height: 80px; /* 100 */
 position: absolute;
-width: 80px; /* 100 */
 }
 
 div#players {

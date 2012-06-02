@@ -265,7 +265,7 @@ function drawCanvas() {
 	map.clearRect(0,0,80,80);
 	// map.clearRect(0,0,radarDim[0],radarDim[1]);
 	// map.clearRect(0,0,80,80);
-	map.fillStyle = "#36c";
+	map.fillStyle = "#36c"; // 36c
 	map.arc((playerPos[0] * 8), (playerPos[1] * 8), 3, 0, (2 * pi), true);
 	// map.arc((playerPos[0] * 8), (playerPos[1] * 8), 3, 0, (2 * pi), true);
 	map.fill();
@@ -313,6 +313,18 @@ function drawCanvas() {
 
 	map.fillStyle = "#f00";
 	map.fill();
+	map.beginPath();
+	map.fillStyle = "#36c";
+
+	if ((dC.players != '') && (dC.players.indexOf('|') != "-1")) {
+		$.each(dC.players.split('|'), function(index, value) {
+			var playerinfo = value.split(',');
+			if (playerinfo[0] != dC.user) {
+				map.arc((playerinfo[1] * 8), (playerinfo[2] * 8), 3, 0, (2 * pi), true);
+				map.fill();
+			}
+		});
+	}
 }
 
 function nearWall(x,y) {
@@ -365,14 +377,13 @@ function shoot() {
 	var diffY = (Math.sin(playerDir) * playerVelY);
 	var ytarget = 0;
 	
-	if (dC.players != "") {
-		if (dC.players.indexOf('|') >= 0) {
-			$.each(dC.players.split('|'), function(index, value) {
-				for (y = playerY; y > (playerY - ytarget); y += diffY) {
-					
-				}
-			});
-		}
+	if ((dC.players != '') && (dC.players.indexOf('|') != "-1")) {
+		$.each(dC.players.split('|'), function(index, value) {
+			var playerinfo = value.split(',');
+			for (y = playerY; y > (playerY - ytarget); y += diffY) {
+				
+			}
+		});
 	}
 
 	if (accurate) {
@@ -430,17 +441,8 @@ function update() {
 		var oldY = playerPos[1];
 		var newX = oldX + (Math.cos(playerDir) * playerVelY);
 		var newY = oldY + (Math.sin(playerDir) * playerVelY);
-
-		if (!nearWall(newX, oldY)) {
-			playerPos[0] = newX;
-			oldX = newX;
-			change = true;
-		}
-
-		if (!nearWall(oldX, newY)) {
-			playerPos[1] = newY;
-			change = true;
-		}
+		if (!nearWall(newX, oldY)) { playerPos[0] = newX; oldX = newX; change = true; }
+		if (!nearWall(oldX, newY)) { playerPos[1] = newY; change = true; }
 	} else {
 		var oldX = oldX2 = newX = playerPos[0];
 		var oldY = newY = playerPos[1];
@@ -472,7 +474,7 @@ document.onmouseup = function() { changeKey(66, 0); }
 
 function initUnderMap() {
 	var underMap = document.getElementById("underMap").getContext("2d");
-	underMap.fillStyle = "#f00";
+	underMap.fillStyle = "#fff"; // f00
 	underMap.fillRect(0,0,200,200);
 	// underMap.fillRect(0,0,(radarDim[0] * 2),(radarDim[1] * 2));
 	// underMap.fillRect(0,0,200,200);
@@ -491,13 +493,13 @@ function updatePlayers() {
 		data: 'id=game&action=update&data=' + dC.playerInfo.toString(),
 		type: 'get',
 		success: function (data) {
+			if (data == dC.players) return; else drawCanvas();
 			if ((data != "") && (data != "x")) dC.players = data;
-			else if (data == "x") var status = "bad";
-			
-			if (status != "bad") {
+			else if (data == "x") var error = false;
+			if (!error) {
 				$("div#players").html('');
-				if (dC.players != "") {
-					if (dC.players.indexOf('|') >= 0) {
+				if (dC.players != '') {
+					if (dC.players.indexOf('|') != "-1") {
 						$.each(dC.players.split('|'), function(index, value) {
 							var playerinfo = value.split(',');
 							var player = [
@@ -515,7 +517,6 @@ function updatePlayers() {
 							'</div>'
 							].join('');
 							$("div#players").append(player);
-							
 						});
 					} else {
 						var playerinfo = dC.players.split(',');
@@ -554,5 +555,5 @@ $(document).ready(function() {
 	drawCanvas();
 	initUnderMap();
 	setInterval(update, 35);
-	setInterval(updatePlayers, 500);
+	setInterval(updatePlayers, 350);
 });

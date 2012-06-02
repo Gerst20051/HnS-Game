@@ -1,14 +1,13 @@
 <?php
 session_start();
 chdir("/xampp/HomenetSpaces/hnsdesktop/");
-define('MYSQL_HOST','localhost');
-define('MYSQL_USER','root');
-define('MYSQL_PASSWORD','comwiz05');
+include ("db.inc.php");
 
 if (isset($_GET['id'])) {
 $id = trim($_GET['id']);
-if (isset($_SESSION['username'])) $username = $_SESSION['username']; else $username = "GUSER";
+$username = $_SESSION['username'];
 $userid = $_SESSION['user_id'];
+
 if (isset($_GET['action'])) $action = trim($_GET['action']);
 if (isset($_GET['data'])) $data = trim($_GET['data']);
 
@@ -16,44 +15,62 @@ switch ($id) {
 case 'game':
 
 switch ($action) {
-case 'receive':
-
-$db = mysql_connect(MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD) or die ("<h2>Unable to connect to database Members. Check your connection parameters.</h2>");
-mysql_select_db("members", $db) or die(mysql_error($db));
-$timestamp = time();
-
-$result = mysql_query("SELECT player, info FROM game", $db);
-while ($row = mysql_fetch_array($result)) {
-if (empty($playerslist)) $playerslist = $row['player'] . ',' . $row['info'];
-else $playerslist .= '|' . $row['player'] . ',' . $row['info'];
-}
-
-echo $playerslist;
-mysql_free_result($result);
-mysql_close($db);
-
-break;
 case 'update':
+/*
+$query = 'UPDATE hns_desktop SET players = "' . serialize(mysql_real_escape_string($data)) . '" WHERE user_id = ' . $userid;
+mysql_query($query, $db) or die(mysql_error());
+*/
 
-$db = mysql_connect(MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD) or die ("<h2>Unable to connect to database Members. Check your connection parameters.</h2>");
-mysql_select_db("members", $db) or die(mysql_error($db));
-$timestamp = time();
-$timeout = ($timestamp - 30);
+$file = "playerlist.txt";
+$fhandle = fopen($file, "r") or exit("Unable to open file!");
+$playerlist = fread($fhandle, filesize($file));
+fclose($fhandle);
 
-mysql_query('INSERT INTO game (timestamp, player, info) VALUES ("' . $timestamp . '", "' . $username . '", "' .  $data . '") ON DUPLICATE KEY UPDATE timestamp = "' . $timestamp . '", info = "' . $data . '"', $db) or die(mysql_error($db));
-mysql_close($db);
+if ($playerlist == "") {
+$playerlist = $_SESSION['username'] . " " . $data;
+} else {
+$playerslist = explode(",", $playerlist);
+foreach ($playerslist as $list) {
+if (!in_array($_SESSION['username'], explode(" ", $list))) $playerlist .= "," . $_SESSION['username'] . " " . $data;
+}
+}
+
+$fhandle = fopen($file, "w");
+fwrite($fhandle, $playerlist);
+fclose($fhandle);
 
 break;
-case 'delete';
+case 'retrieve':
 
-$db = mysql_connect(MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD) or die ("<h2>Unable to connect to database Members. Check your connection parameters.</h2>");
-mysql_select_db("members", $db) or die(mysql_error($db));
+$file = "playerlist.txt";
+$fhandle = fopen($file, "r") or exit("Unable to open file!");
+$content = fread($fhandle, filesize($file));
+fclose($fhandle);
+$content = explode(",", $content);
 
-$timestamp = time();
-$timeout = ($timestamp - 30);
+/*
+foreach($content as $player) {
+$query = 'SELECT user_id FROM login WHERE username = "' . mysql_real_escape_string($player, $db) . '"';
+$result = mysql_query($query, $db) or die(mysql_error($db));
 
-mysql_query("DELETE FROM game WHERE timestamp < $timeout", $db);
-mysql_close($db);
+if (mysql_num_rows($result) == 1) {
+$row = mysql_fetch_assoc($result);
+extract($row);
+mysql_free_result($result);
+$playerid = $row['user_id'];
+}
+
+$query = 'SELECT players FROM hns_desktop WHERE user_id = "' . mysql_real_escape_string($playerid, $db) . '"';
+$result = mysql_query($query, $db) or die(mysql_error($db));
+
+if (mysql_num_rows($result) == 1) {
+$row = mysql_fetch_assoc($result);
+extract($row);
+mysql_free_result($result);
+echo $row['players'];
+}
+}
+*/
 
 break;
 }
@@ -61,4 +78,13 @@ break;
 break;
 }
 }
+
+/*
+if (isset($_SESSION['logged']) && ($_SESSION['logged'] == 1)) mysql_query('UPDATE hns_desktop SET players = "' . mysql_real_escape_string($players) . '" WHERE user_id = ' . $_SESSION['user_id'], $db);
+else mysql_query('UPDATE hns_desktop SET players = "' . mysql_real_escape_string($players) . '" WHERE user_id = ' . $_SESSION['user_id'], $db);
+
+$players = "";
+if (isset($_SESSION['logged']) && ($_SESSION['logged'] == 1)) mysql_query('UPDATE hns_desktop SET players = "' . mysql_real_escape_string($players) . '" WHERE user_id = ' . $_SESSION['user_id'], $db);
+else mysql_query('UPDATE hns_desktop SET players = "' . mysql_real_escape_string($players) . '" WHERE user_id = ' . $_SESSION['user_id'], $db);
+*/
 ?>

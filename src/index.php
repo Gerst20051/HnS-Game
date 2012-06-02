@@ -13,28 +13,11 @@ extract($row);
 mysql_free_result($result);
 }
 
-/*
-$file = "playerlist.txt";
-$fhandle = fopen($file, "r") or exit("Unable to open file!");
-$playerlist = fread($fhandle, filesize($file));
-fclose($fhandle);
-
-if ($playerlist == "") {
-$playerlist = $_SESSION['username'];
-} else {
-if (!in_array($_SESSION['username'], explode(",", $playerlist))) $playerlist .= "," . $_SESSION['username'];
-}
-
-$fhandle = fopen($file, "w");
-fwrite($fhandle, $playerlist);
-fclose($fhandle);
-*/
-
 $array1 = array(
 	array("rose", 1.25 , 15),
 	array("daisy", 0.75 , 25),
 	array("orchid", 1.15 , 7) 
-	);
+);
 
 $array2 = array(
 	array(
@@ -156,12 +139,15 @@ try { if (top != window) top.location.replace(location.href);
 var dConfig = {
 "user":"<?php echo $_SESSION['username']; ?>",
 "players":"",
-"playerindex":0,
 "dcrate":0.15, // .07
 "playerPos":[4,4],
 "playerDir":0.4,
-"playerPosZ":1
+"playerVelY":0,
+"playerPosZ":1,
+"playerInfo":''
 }
+
+dConfig.playerInfo = dConfig.playerPos[0] + "|" + dConfig.playerPos[1] + "|" + dConfig.playerDir + "|" + dConfig.playerVelY + "|" + dConfig.playerPosZ;
 
 var map;
 var canvas;
@@ -216,7 +202,7 @@ function wallDistance(theta) {
 	var deltaX, deltaY;
 	var distX, distY;
 	var stepX, stepY;
-	var mapX, mapY
+	var mapX, mapY;
 	var atX = Math.floor(x), atY = Math.floor(y);
 	var thisRow = -1;
 	var thisSide = -1;
@@ -281,7 +267,7 @@ function wallDistance(theta) {
 					data.push(distY);
 					thisSide = 1;
 					thisRow = mapY;
-					face.push(2 + stepY)
+					face.push(2 + stepY);
 					}
 
 					lastHeight = distY;
@@ -326,9 +312,9 @@ function drawCanvas() {
 		var wallH2 = (100 / (wall[i + 3] * fix2));
 
 		tl = [(wall[i] * 2), 150 - (wallH1 * h)];
-		tr = [(wall[i + 2] * 2), 150 - (wallH2 * h)]
+		tr = [(wall[i + 2] * 2), 150 - (wallH2 * h)];
 		br = [(wall[i + 2] * 2), tr[1] + (wallH2 * 2)];
-		bl = [(wall[i] * 2), tl[1] + (wallH1 * 2)]
+		bl = [(wall[i] * 2), tl[1] + (wallH1 * 2)];
 
 		var shade1 = Math.floor((wallH1 * 2) + 20); if (shade1 > 255) shade1 = 255;
 		var shade2 = Math.floor((wallH2 * 2) + 20); if (shade2 > 255) shade2 = 255;
@@ -359,7 +345,7 @@ function nearWall(x,y) {
 	if (isNaN(y)) y = playerPos[1];
 
 	for (var i = -0.1; i <= 0.1; i += 0.2) {
-		xx = Math.floor(x + i)
+		xx = Math.floor(x + i);
 
 		for (var j = -0.1; j <= 0.1; j += 0.2) {
 			yy = Math.floor(y + j);
@@ -393,7 +379,16 @@ function shoot() {
 	canvas.closePath();
 	canvas.stroke();
 	canvas.restore();
-	setTimeout('drawCanvas()',100);
+	setTimeout('drawCanvas()', 100);
+
+	$.ajax({
+		url: 'load.php',
+		data: 'id=game&action=shoot&data=' + dConfig.playerinfo,
+		type: 'get',
+		success: function (data) {
+
+		}
+	});
 }
 
 function update() {
@@ -433,7 +428,7 @@ function update() {
 	}
 
 	if (playerVelY != 0) {
-		var oldX = playerPos[0];
+		var oldX = oldX2 = playerPos[0];
 		var oldY = playerPos[1];
 		var newX = oldX + (Math.cos(playerDir) * playerVelY);
 		var newY = oldY + (Math.sin(playerDir) * playerVelY);
@@ -448,26 +443,16 @@ function update() {
 			playerPos[1] = newY;
 			change = true;
 		}
+	} else {
+		var oldX = oldX2 = newX = playerPos[0];
+		var oldY = newY = playerPos[1];
 	}
 
 	if (playerVelY) wobbleGun();
 	if (change) drawCanvas();
 	if (change) {
-		$("div#" + dConfig.user + " div.x").html('X ' + oldX + ' | ' + newX);
-		$("div#" + dConfig.user + " div.y").html('Y ' + oldY + ' | ' + newY);
-		$("div#" + dConfig.user + " div.dir").html('D ' + playerDir);
-		$("div#" + dConfig.user + " div.other").html('V ' + playerVelY + ' | Z ' + playerPosZ);
-		var info = newX + " " + newY + " " + playerDir + " " + playerVelY + " " + playerPosZ;
-
-		$.ajax({
-			url: 'load.php',
-			data: 'id=game&action=update&data=' + info,
-			type: 'get',
-			success: function (data) {
-				dConfig.players = players;
-				playerInfo();
-			}
-		});
+		// dConfig.playerPos[0] = newX; dConfig.playerPos[1] = newY; dConfig.playerDir = playerDir; dConfig.playerVelY = playerVelY; dConfig.playerPosZ = playerPosZ;
+		dConfig.playerInfo = newX + "|" + newY + "|" + playerDir + "|" + playerVelY + "|" + playerPosZ;
 	}
 }
 
@@ -499,6 +484,55 @@ function initUnderMap() {
 	}
 }
 
+function updatePlayers() {
+	$.ajax({
+		url: 'load.php',
+		data: 'id=game&action=update&data=' + dConfig.playerInfo,
+		type: 'get',
+		success: function (data) {
+			if (data != "") dConfig.players = data;
+			else if (data == "x") var status = "bod";
+
+			$.each(dConfig.players.split(','), function(index, value) {
+					var player = [
+					'<div id="player' + index + '" class="player">',
+					'<div class="name">', value[0], '</div>',
+					'<div class="x">', value[1], '</div>',
+					'<div class="y">', value[2], '</div>',
+					'<div class="dir">', value[3], '</div>',
+					'<div class="other">', value[4], '</div>',
+					'</div>',
+					].join('');
+
+					$("div#player" + index + " div.x").html('X ' + oldX2 + ' | ' + newX);
+					$("div#player" + index + " div.y").html('Y ' + oldY + ' | ' + newY);
+					$("div#player" + index + " div.dir").html('D ' + playerDir);
+					$("div#player" + index + " div.other").html('V ' + playerVelY + ' | Z ' + playerPosZ);
+
+				$.each(dConfig.players.split(','), function(index, value) {
+		var player = [
+		'<div id="player0" class="player">',
+		'<div class="name">', value, '</div>',
+		'<div class="x"></div>',
+		'<div class="y"></div>',
+		'<div class="dir"></div>',
+		'<div class="other"></div>',
+		'</div>',
+		'<div id="player0" class="player">',
+		'<div class="name">', value, '</div>',
+		'<div class="x"></div>',
+		'<div class="y"></div>',
+		'<div class="dir"></div>',
+		'<div class="other"></div>',
+		'</div>'
+		].join('');
+
+		$("div#players").append(player);
+	});
+		}
+	});
+}
+
 $(document).ready(function() {
 	var ele = document.getElementById("map");
 
@@ -514,29 +548,7 @@ $(document).ready(function() {
 	drawCanvas();
 	initUnderMap();
 	setInterval(update, 35);
-
-	function playerinfo() {
-		$.each(dConfig.players.split(','), function(index, value) {
-			var player = [
-			'<div id="', value, '" class="player">',
-			'<div class="name">', value, '</div>',
-			'<div class="x"></div>',
-			'<div class="y"></div>',
-			'<div class="dir"></div>',
-			'<div class="other"></div>',
-			'</div>',
-			'<div id="', value, '" class="player">',
-			'<div class="name">', value, '</div>',
-			'<div class="x"></div>',
-			'<div class="y"></div>',
-			'<div class="dir"></div>',
-			'<div class="other"></div>',
-			'</div>'
-			].join('');
-
-			$("div#players").append(player);
-		});
-	}
+	setInterval(updatePlayers, 2000);
 });
 </script>
 </head>
