@@ -20,10 +20,15 @@ case 'update':
 
 $file = "game/playerlist.txt";
 
-if ($fhandle = fopen($file, 'c+')) {
+if ($fhandle = @fopen($file, 'r')) {
 	if (flock($fhandle, LOCK_EX)) {
 		$playerslist = trim(fread($fhandle, filesize($file)));
+		fclose($fhandle);
+	}
+}
 
+if ($fhandle = @fopen($file, 'w')) {
+	if (flock($fhandle, LOCK_EX)) {
 		if ($playerslist == "") {
 			$newplayerslist = $newdata;
 		} else {
@@ -36,18 +41,17 @@ if ($fhandle = fopen($file, 'c+')) {
 					}
 				}
 				if ($exists === true) $newplayerslist = str_replace($playerinfo, $newdata, $playerslist);
-				else $newplayerslist = "$playerslist$newdata";
+				else $newplayerslist = $playerslist . $newdata;
 			} else {
 				$player = explode("|", $playerslist);
 				if (in_array($username, $player)) $newplayerslist = $newdata;
-				else $newplayerslist = "$playerslist$newdata";
+				else $newplayerslist = $playerslist . $newdata;
 			}
 		}
-
-		if (is_writable($file)) fwrite($fhandle, $newplayerslist);
-		//echo $newplayerslist;
+		if (is_writeable($file)) fwrite($fhandle, $newplayerslist);
+		echo $newplayerslist;
 	}
-	fclose($fhandle); exit();
+	fclose($fhandle);
 } else {
 	echo "x";
 }

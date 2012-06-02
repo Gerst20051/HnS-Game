@@ -12,28 +12,6 @@ $row = mysql_fetch_assoc($result);
 extract($row);
 mysql_free_result($result);
 }
-
-$array1 = array(
-	array("rose", 1.25 , 15),
-	array("daisy", 0.75 , 25),
-	array("orchid", 1.15 , 7) 
-);
-
-$array2 = array(
-	array(
-		Title => "rose",
-		Price => 1.25,
-		Number => 15
-	), array(
-		Title => "daisy",
-		Price => 0.75,
-		Number => 25
-	), array(
-		Title => "orchid",
-		Price => 1.15,
-		Number => 7
-	)
-);
 ?>
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
@@ -124,7 +102,8 @@ div#players {
 div#players div.player {
 clear: right;
 float: left;
-width: 340px;
+margin: 4px;
+width: 225px;
 }
 
 div#players div.player div.name {
@@ -381,14 +360,20 @@ function shoot() {
 	canvas.restore();
 	setTimeout('drawCanvas()', 100);
 
-	$.ajax({
-		url: 'load.php',
-		data: 'id=game&action=shoot&data=' + dConfig.playerinfo,
-		type: 'get',
-		success: function (data) {
+	dConfig.playerInfo;
+	var newX = playerPos[0] + (Math.cos(playerDir) * playerVelY);
+	var newY = playerPos[1] + (Math.sin(playerDir) * playerVelY);
 
-		}
-	});
+	if (accurate) {
+		$.ajax({
+			url: 'load.php',
+			data: 'id=game&action=shoot&data=', // who was killed
+			type: 'get',
+			success: function (data) {
+				// Give Points
+			}
+		});
+	}
 }
 
 function update() {
@@ -492,43 +477,42 @@ function updatePlayers() {
 		success: function (data) {
 			if (data != "") dConfig.players = data;
 			else if (data == "x") var status = "bod";
-
-			$.each(dConfig.players.split(','), function(index, value) {
-					var player = [
-					'<div id="player' + index + '" class="player">',
-					'<div class="name">', value[0], '</div>',
-					'<div class="x">', value[1], '</div>',
-					'<div class="y">', value[2], '</div>',
-					'<div class="dir">', value[3], '</div>',
-					'<div class="other">', value[4], '</div>',
-					'</div>',
-					].join('');
-
-					$("div#player" + index + " div.x").html('X ' + oldX2 + ' | ' + newX);
-					$("div#player" + index + " div.y").html('Y ' + oldY + ' | ' + newY);
-					$("div#player" + index + " div.dir").html('D ' + playerDir);
-					$("div#player" + index + " div.other").html('V ' + playerVelY + ' | Z ' + playerPosZ);
-
-				$.each(dConfig.players.split(','), function(index, value) {
-		var player = [
-		'<div id="player0" class="player">',
-		'<div class="name">', value, '</div>',
-		'<div class="x"></div>',
-		'<div class="y"></div>',
-		'<div class="dir"></div>',
-		'<div class="other"></div>',
-		'</div>',
-		'<div id="player0" class="player">',
-		'<div class="name">', value, '</div>',
-		'<div class="x"></div>',
-		'<div class="y"></div>',
-		'<div class="dir"></div>',
-		'<div class="other"></div>',
-		'</div>'
-		].join('');
-
-		$("div#players").append(player);
-	});
+			
+			if (status != "bad") {
+				$("div#players").html('');
+				if (dConfig.players != "") {
+					if (dConfig.players.indexOf(',') >= 0) {
+						$.each(dConfig.players.split(','), function(index, value) {
+							var playerinfo = value.split('|');
+							var player = [
+							'<div id="' + playerinfo[0] + '" class="player">',
+							'<div class="name">', playerinfo[0], '</div>',
+							'<div class="x">X ', playerinfo[1], '</div>',
+							'<div class="y">Y ', playerinfo[2], '</div>',
+							'<div class="dir">D ', playerinfo[3], '</div>',
+							'<div class="v">V ', playerinfo[4], '</div>',
+							'<div class="z">Z ', playerinfo[5], '</div>',
+							'</div>'
+							].join('');
+							$("div#players").append(player);
+							
+						});
+					} else {
+						var playerinfo = dConfig.players.split('|');
+						var player = [
+						'<div id="' + playerinfo[0] + '" class="player">',
+						'<div class="name">', playerinfo[0], '</div>',
+						'<div class="x">X ', playerinfo[1], '</div>',
+						'<div class="y">Y ', playerinfo[2], '</div>',
+						'<div class="dir">D ', playerinfo[3], '</div>',
+						'<div class="v">V ', playerinfo[4], '</div>',
+						'<div class="z">Z ', playerinfo[5], '</div>',
+						'</div>'
+						].join('');
+						$("div#players").append(player);
+					}
+				}
+			}
 		}
 	});
 }
@@ -548,7 +532,7 @@ $(document).ready(function() {
 	drawCanvas();
 	initUnderMap();
 	setInterval(update, 35);
-	setInterval(updatePlayers, 2000);
+	setInterval(updatePlayers, 500);
 });
 </script>
 </head>

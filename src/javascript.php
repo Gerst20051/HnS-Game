@@ -6,7 +6,7 @@ try { if (top != window) top.location.replace(location.href);
 } catch(ignore) {}
 
 var dC = {
-"user":"<?php echo $_SESSION['username']; ?>",
+"user":"<?php if (isset($_SESSION['username'])) echo $_SESSION['username']; else echo 'GUSER'; ?>",
 "players":"",
 "dcrate":0.15,
 "mapx":0,
@@ -387,15 +387,10 @@ function shoot() {
 	}
 
 	if (accurate) {
-		$.ajax({
-			url: 'load.php',
-			data: 'id=game&action=update&data=' + dC.playerInfo.toString(),
-			type: 'get',
-			success: function (data) {
-				dC.playerInfo[4] += 150;
-				dC.playerInfo[5]++;
-				alert("accurate");
-			}
+		$.get("load.php", { id: "game", action: "update", data: dC.playerInfo.toString() }, function(data) {
+			dC.playerInfo[4] += 150;
+			dC.playerInfo[5]++;
+			alert("accurate");
 		});
 	}
 }
@@ -452,6 +447,7 @@ function update() {
 	if (change) drawCanvas();
 	if (change) {
 		dC.playerInfo = [newX,newY,playerDir,playerVelY,playerPosZ,playerScore,playerKills,playerDeaths,playerStatus];
+		// updatePInfo();
 	}
 }
 
@@ -463,7 +459,7 @@ function changeKey(which, to) {
 		case 83: case 40: key[3] = to; break;// down
 		case 32: key[4] = to; break; // space bar;
 		case 17: key[5] = to; break; // ctrl
-		case 66: if (to) { shoot() } break; // b
+		case 66: if (to) shoot(); break; // b
 	}
 }
 
@@ -487,39 +483,17 @@ function initUnderMap() {
 	}
 }
 
-function updatePlayers() {
-	$.ajax({
-		url: 'load.php',
-		data: 'id=game&action=update&data=' + dC.playerInfo.toString(),
-		type: 'get',
-		success: function (data) {
-			if (data == dC.players) return; else drawCanvas();
-			if ((data != "") && (data != "x")) dC.players = data;
-			else if (data == "x") var error = false;
-			if (!error) {
-				$("div#players").html('');
-				if (dC.players != '') {
-					if (dC.players.indexOf('|') != "-1") {
-						$.each(dC.players.split('|'), function(index, value) {
-							var playerinfo = value.split(',');
-							var player = [
-							'<div id="' + playerinfo[0] + '" class="player">',
-							'<div class="name">', playerinfo[0], '</div>',
-							'<div class="x">X ', playerinfo[1], '</div>',
-							'<div class="y">Y ', playerinfo[2], '</div>',
-							'<div class="dir">D ', playerinfo[3], '</div>',
-							'<div class="v">V ', playerinfo[4], '</div>',
-							'<div class="z">Z ', playerinfo[5], '</div>',
-							'<div class="score">Score ', playerinfo[6], '</div>',
-							'<div class="kills">Kills ', playerinfo[7], '</div>',
-							'<div class="deaths">Deaths ', playerinfo[8], '</div>',
-							'<div class="status">Status ', playerinfo[9], '</div>',
-							'</div>'
-							].join('');
-							$("div#players").append(player);
-						});
-					} else {
-						var playerinfo = dC.players.split(',');
+function receivePInfo() {
+	$.get("load.php", { id: "game", action: "receive", data: dC.playerInfo.toString() }, function(data) {
+		if (data == dC.players) return; else drawCanvas();
+		if ((data != "") && (data != "x")) { dC.players = data; var error = false; }
+		else if (data == "x") var error = true;
+		if (!error) {
+			$("div#players").html('');
+			if (dC.players != '') {
+				if (dC.players.indexOf('|') != "-1") {
+					$.each(dC.players.split('|'), function(index, value) {
+						var playerinfo = value.split(',');
 						var player = [
 						'<div id="' + playerinfo[0] + '" class="player">',
 						'<div class="name">', playerinfo[0], '</div>',
@@ -535,12 +509,43 @@ function updatePlayers() {
 						'</div>'
 						].join('');
 						$("div#players").append(player);
-					}
+					});
+				} else {
+					var playerinfo = dC.players.split(',');
+					var player = [
+					'<div id="' + playerinfo[0] + '" class="player">',
+					'<div class="name">', playerinfo[0], '</div>',
+					'<div class="x">X ', playerinfo[1], '</div>',
+					'<div class="y">Y ', playerinfo[2], '</div>',
+					'<div class="dir">D ', playerinfo[3], '</div>',
+					'<div class="v">V ', playerinfo[4], '</div>',
+					'<div class="z">Z ', playerinfo[5], '</div>',
+					'<div class="score">Score ', playerinfo[6], '</div>',
+					'<div class="kills">Kills ', playerinfo[7], '</div>',
+					'<div class="deaths">Deaths ', playerinfo[8], '</div>',
+					'<div class="status">Status ', playerinfo[9], '</div>',
+					'</div>'
+					].join('');
+					$("div#players").append(player);
 				}
 			}
 		}
 	});
 }
+
+function updatePInfo() {
+	$.get("load.php", { id: "game", action: "update", data: dC.playerInfo.toString() });
+}
+
+function deletePlayers() {
+	$.get("load.php", { id: "game", action: "delete" });
+}
+
+/*
+var canvas = document.createElement('canvas');
+$(canvas).attr('width',100).attr('height',100).appendTo($('#item'));
+if($.browser.msie) canvas = G_vmlCanvasManager.initElement(canvas);
+*/
 
 $(document).ready(function() {
 	var ele = document.getElementById("map");
@@ -554,6 +559,9 @@ $(document).ready(function() {
 	document.getElementById("sky").style.backgroundPosition = Math.floor(-playerDir / (2 * pi) * 2400) + "px 0";
 	drawCanvas();
 	initUnderMap();
+	updatePInfo();
 	setInterval(update, 35);
-	setInterval(updatePlayers, 350);
+	setInterval(receivePInfo, 150);
+	setInterval(updatePInfo, 150);
+	setInterval(deletePlayers, 30000);
 });
