@@ -26,6 +26,7 @@ mysql_free_result($result);
 <meta name="keywords" content="Homenet, Spaces, HnS, OS, Web, Desktop, The, Place, To, Be, Creative, Andrew, Gerst, Free, Profile, Profiles, Apps, Applications" />
 <meta name="description" content="Welcome to Homenet Spaces OS | This is the place to be creative! Feel free to add yourself to our wonderful community by registering! HnS Desktop" />
 <script type="text/javascript" src="jquery.js"></script>
+<!--[if IE]><script type="text/javascript" src="excanvas.compiled.js"></script><![endif]-->
 <script type="text/javascript" src="javascript.php"></script>
 <link rel="stylesheet" type="text/css" href="css.php" media="all">
 <base target="_top" />
@@ -35,13 +36,14 @@ mysql_free_result($result);
 <!-- Begin page content -->
 <div id="main">
 <h2>3D Canvas Shooter</h2>
+<h4 style="position: absolute; right: 30px; top: 0;">(WASD + Arrows: Movement) (B + Click: Shoot) (Space: Jump)</h4>
 <div id="app">
-<canvas id="underMap"></canvas>
-<canvas id="map"></canvas>
+<canvas id="underMap" height="80" width="80"></canvas>
+<canvas id="map" height="80" width="80"></canvas>
 <div id="holder">
 <div id="sky"></div>
 <div id="floor"></div>
-<canvas id="canvas"></canvas>
+<canvas id="canvas" height="300" width="400"></canvas>
 <div id="overlay"></div>
 </div>
 </div>
